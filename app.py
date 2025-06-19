@@ -13,11 +13,11 @@ translator = Translator()
 
 app = Flask(__name__)
 
-# Predefined Sinhala menu responses
+# Sinhala menu and fixed answers
 MENU = {
     "බර්ගර්": "🍔 චිකන් බර්ගර් - Rs.750\n🍔 බීෆ් බර්ගර් - Rs.800\n🍔 විජි බර්ගර් - Rs.700",
     "බිරියානි": "🍛 චිකන් බිරියානි - Rs.950\n🍛 බීෆ් බිරියානි - Rs.1000",
-    "කාලය": "⏰ අපි සතියේ සියලු දිනවලම පෙ.ව. 10 සිට රා.8 දක්වා විවෘතව ඇත."
+    "කාලය": "⏰ අපි සතියේ සියලු දිනවලම පෙරවරු 10 සිට රාත්‍රී 8 දක්වා විවෘතව ඇත."
 }
 
 @app.route("/bot", methods=["POST"])
@@ -28,26 +28,27 @@ def whatsapp_bot():
     print(f"📩 Incoming from {from_number}: {user_msg}")
 
     try:
-        # Translate Sinhala to English for processing
+        # Translate Sinhala → English
         translated = translator.translate(user_msg, src='si', dest='en').text.lower()
         print(f"🔤 Translated to English: {translated}")
 
-        # Rule-based answers for known questions
+        # Predefined Sinhala responses
         if any(word in translated for word in ["menu", "burger", "biryani", "rice", "food", "price"]):
             reply = MENU["බර්ගර්"] + "\n\n" + MENU["බිරියානි"]
+
         elif any(word in translated for word in ["open", "close", "hours", "time"]):
             reply = MENU["කාලය"]
+
         else:
-            # Call GPT for anything else
+            # GPT fallback for open questions
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
                     {
                         "role": "system",
                         "content": (
-                            "You are a friendly restaurant assistant in Sri Lanka who understands English "
-                            "and replies politely in Sinhala. Answer questions about the menu, prices, hours, "
-                            "and ordering options. Avoid long or overly technical replies."
+                            "You are a friendly virtual assistant for a Sri Lankan restaurant. "
+                            "Always reply in polite Sinhala. Answer questions about the menu, prices, opening hours, and ordering help."
                         )
                     },
                     {"role": "user", "content": translated}
@@ -55,24 +56,22 @@ def whatsapp_bot():
             )
             reply = response.choices[0].message.content.strip()
 
-        # Translate GPT's reply back to Sinhala
-        sinhala_reply = translator.translate(reply, src='en', dest='si').text
+            # Translate GPT reply → Sinhala
+            reply = translator.translate(reply, src='en', dest='si').text
 
-        # Fallback if reply is empty or weird
-        if len(sinhala_reply.strip()) < 5:
-            sinhala_reply = "කණගාටුයි, කරුණාකර පැහැදිලිව නැවත අයදුම් කරන්න."
+        # Fallback in case response is empty
+        if len(reply.strip()) < 5:
+            reply = "කණගාටුයි, කරුණාකර ඔබගේ ප්‍රශ්නය පැහැදිලිව නැවත යවන්න."
 
-        # Return WhatsApp response
+        print(f"✅ Replied: {reply}")
         twiml = MessagingResponse()
-        twiml.message(sinhala_reply)
-        print(f"✅ Replied: {sinhala_reply}")
+        twiml.message(reply)
         return str(twiml)
 
     except Exception as e:
-        error_msg = f"කණගාටුයි, දෝෂයක් සිදුවී ඇත: {str(e)}"
-        print(f"❌ ERROR: {error_msg}")
+        print(f"❌ ERROR: {e}")
         twiml = MessagingResponse()
-        twiml.message(error_msg)
+        twiml.message("කණගාටුයි, දෝෂයක් ඇති විය. කරුණාකර පසුව නැවත උත්සාහ කරන්න.")
         return str(twiml)
 
 if __name__ == "__main__":
