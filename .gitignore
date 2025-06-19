@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Flask
+instance/
+*.db
+*.sqlite3
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+
+# Secrets
+.env
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Railway or Render deploy logs
+railway/
